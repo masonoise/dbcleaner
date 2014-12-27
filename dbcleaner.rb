@@ -6,6 +6,9 @@ class DBCleaner
 
   @db_client = nil
 
+  #
+  # Main method, call this to execute the DBCleaner extraction based on the db_config.json file.
+  #
   def extract
     @db_client = get_db_client
 
@@ -34,18 +37,22 @@ class DBCleaner
   def table_query(table, columns, ids)
     query = "SELECT #{columns.join(',')} FROM #{table['name']}"
     if (ids)
-      query << "WHERE id IN (#{ids.join(',')})"
+      query << " WHERE id IN (#{ids.join(',')})"
     end
     query
   end
 
   def table_columns(table)
-    ['id','name']
+    if (table['columns'])
+      table['columns']
+    else
+      ['*']
+    end
   end
 
   def table_ids(table)
-    nil
+    table['ids'] if (table['ids'])
   end
 end
 
-DBCleaner.new.extract
+# DBCleaner.new.extract
