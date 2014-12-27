@@ -5,13 +5,15 @@ class DBCleaner
   include DBCleanerUtil
 
   @db_client = nil
+  def db_client
+    @db_client ||= get_db_client
+  end
 
   #
   # Main method, call this to execute the DBCleaner extraction based on the db_config.json file.
   #
-  def extract
-    @db_client = get_db_client
-
+  def extract(outfile_path = 'dbcleaner_output.sql')
+    @outfile = open(outfile_path, 'w')
     puts "Loading config...\n"
     dbconfig = parse_db_config
 
@@ -19,6 +21,7 @@ class DBCleaner
   end
 
   def extract_tables(tables)
+    puts "Extracting #{tables.count} tables..."
     tables.each do |table|
       extract_table(table)
     end
@@ -26,12 +29,17 @@ class DBCleaner
 
   def extract_table(table)
     puts "Extracting from #{table['name']}\n"
+    @outfile.puts create_table(table)
     columns = table_columns(table)
     ids = table_ids(table)
     query = table_query(table, columns, ids)
-    @db_client.query(query).each do |row|
-      puts "INSERT INTO #{table['name']} (#{columns.join(',')}) VALUES (#{columns.map {|c| row[c]}.join(',')})\n"
+    db_client.query(query).each do |row|
+      @outfile.puts "INSERT INTO #{table['name']} (#{columns.join(',')}) VALUES (#{columns.map {|c| row[c]}.join(',')})\n"
     end
+  end
+
+  def create_table(table)
+    db_client.query("SHOW CREATE TABLE #{table['name']}").first['Create Table']
   end
 
   def table_query(table, columns, ids)
