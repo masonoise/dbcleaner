@@ -33,13 +33,18 @@ class DBCleaner
     columns = table_columns(table)
     ids = table_ids(table)
     query = table_query(table, columns, ids)
-    db_client.query(query).each do |row|
-      @outfile.puts "INSERT INTO #{table['name']} (#{columns.join(',')}) VALUES (#{columns.map {|c| row[c]}.join(',')})\n"
+    results = db_client.query(query)
+    results.each do |row|
+      @outfile.puts make_insert(table, results.fields, row)
     end
   end
 
   def create_table(table)
     db_client.query("SHOW CREATE TABLE #{table['name']}").first['Create Table']
+  end
+
+  def make_insert(table, columns, row)
+    "INSERT INTO #{table['name']} (#{columns.join(',')}) VALUES (#{columns.map {|c| row[c]}.join(',')})\n"
   end
 
   def table_query(table, columns, ids)
