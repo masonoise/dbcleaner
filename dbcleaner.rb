@@ -35,7 +35,7 @@ class DBCleaner
     query = table_query(table, columns, ids)
     results = db_client.query(query)
     results.each do |row|
-      @outfile.puts make_insert(table, results.fields, row)
+      @outfile.puts make_insert(table, columns, results.fields, row)
     end
   end
 
@@ -43,24 +43,42 @@ class DBCleaner
     db_client.query("SHOW CREATE TABLE #{table['name']}").first['Create Table']
   end
 
-  def make_insert(table, columns, row)
-    "INSERT INTO #{table['name']} (#{columns.join(',')}) VALUES (#{columns.map {|c| row[c]}.join(',')})\n"
+  def make_insert(table, columns, fields, row)
+    statement = "INSERT INTO #{table['name']} (#{fields.join(',')}) VALUES ("
+    values = []
+    fields.each do |field|
+      val = row[field]
+      val = "'#{val}'" if columns[field] == 'varchar'
+      values << val
+    end
+    statement << "#{values.join(',')})\n"
+    statement
   end
 
   def table_query(table, columns, ids)
-    query = "SELECT #{columns.join(',')} FROM #{table['name']}"
+    query = "SELECT #{columns.keys.join(',')} FROM #{table['name']}"
     if (ids)
       query << " WHERE id IN (#{ids.join(',')})"
     end
     query
   end
 
+  #
+  # Get the columns and types for the table from the database, and return a Hash
+  # with each of the requested columns where k=column name, v=column type
+  #
   def table_columns(table)
-    if (table['columns'])
-      table['columns']
-    else
-      ['*']
+    fields = db_client.query("SHOW FIELDS FROM #{table['name']}")
+    columns = {}
+    fields.each do |field|
+      if (table['columns'].nil? || table['columns'].include?(field['Field']))
+        t = field['Type']
+        t = 'varchar' if t.start_with?('varchar')
+        t = 'int' if t.start_with?('int')
+        columns[field['Field']] = t
+      end
     end
+    columns
   end
 
   def table_ids(table)

@@ -16,14 +16,14 @@ describe DBCleaner do
 
   context "specifying a table" do
 
-    it "should return a list of columns" do
+    it "should return a list of columns with types" do
       columns = @dbcleaner.table_columns(table)
-      expect(columns).to match_array(['last_name', 'first_name'])
+      expect(columns).to eq({ 'last_name' => 'varchar', 'first_name' => 'varchar' })
     end
 
-    it "should return star if no columns specified" do
+    it "should return all columns if no columns specified" do
       columns = @dbcleaner.table_columns(table_no_columns)
-      expect(columns).to match_array(['*'])
+      expect(columns).to eq({ 'id' => 'int', 'last_name' => 'varchar', 'first_name' => 'varchar' })
     end
 
     it "should return a list of desired ids" do
@@ -40,7 +40,7 @@ describe DBCleaner do
       it "should make a good query with no ids or columns specified" do
         expect(@dbcleaner.table_query(table_no_ids_or_columns,
             @dbcleaner.table_columns(table_no_ids_or_columns),
-            @dbcleaner.table_ids(table_no_ids_or_columns))).to eq('SELECT * FROM students')
+            @dbcleaner.table_ids(table_no_ids_or_columns))).to eq('SELECT id,first_name,last_name FROM students')
       end
 
       it "should make a good query with no ids specified" do
@@ -52,7 +52,7 @@ describe DBCleaner do
       it "should make a good query with no columns specified" do
         expect(@dbcleaner.table_query(table_no_columns,
             @dbcleaner.table_columns(table_no_columns),
-            @dbcleaner.table_ids(table_no_columns))).to eq('SELECT * FROM students WHERE id IN (1,2)')
+            @dbcleaner.table_ids(table_no_columns))).to eq('SELECT id,first_name,last_name FROM students WHERE id IN (1,2)')
       end
 
       it "should make a good query with ids and columns specified" do
@@ -65,9 +65,12 @@ describe DBCleaner do
   end # context specifying a table
 
   context "extracting from a table" do
-    before :all do
+    before(:all) do
       @student1 = create_student(@dbcleaner.db_client, { :id => 1, :first_name => 'Bob', :last_name => 'Smith' })
       @student2 = create_student(@dbcleaner.db_client, { :id => 2, :first_name => 'John', :last_name => 'Jones' })
+    end
+    after(:all) do
+      @dbcleaner.db_client.query('DELETE FROM students')
     end
 
     it "should generate create table command" do
@@ -76,13 +79,13 @@ describe DBCleaner do
     end
 
     it "should generate insert statement given columns and ids" do
-      columns = ['first_name','last_name']
+      columns = @dbcleaner.table_columns(table)
       ids = [1]
-      insert_string = "INSERT INTO students (first_name,last_name) VALUES ('Bob','Smith')"
+      insert_string = "INSERT INTO students (first_name,last_name) VALUES ('Bob','Smith')\n"
       query = @dbcleaner.table_query(table, columns, ids)
       results = @dbcleaner.db_client.query(query)
       expect(results.count).to eq(1)
-      expect(@dbcleaner.make_insert(table, results.fields, results.first)).to eq(insert_string)
+      expect(@dbcleaner.make_insert(table, columns, results.fields, results.first)).to eq(insert_string)
     end
 
     it "should generate insert statement given columns and no ids" do
