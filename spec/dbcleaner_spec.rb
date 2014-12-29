@@ -14,6 +14,32 @@ describe DBCleaner do
     @dbcleaner.set_key('database/db', 'test_dbcleaner')
   end
 
+  context "handling column values" do
+
+    it "should put varchar values in quotes" do
+      expect(@dbcleaner.make_val('Foobar', 'varchar')).to eq("'Foobar'")
+    end
+
+    it "should put text values in quotes" do
+      expect(@dbcleaner.make_val('Foobar', 'text')).to eq("'Foobar'")
+    end
+
+    it "should replace empty values with NULL" do
+      expect(@dbcleaner.make_val(nil, 'varchar')).to eq("NULL")
+      expect(@dbcleaner.make_val(nil, 'int')).to eq("NULL")
+      expect(@dbcleaner.make_val(nil, 'tinyint')).to eq("NULL")
+      expect(@dbcleaner.make_val(nil, 'datetime')).to eq("NULL")
+    end
+
+    it "should pass integers through unchanged" do
+      expect(@dbcleaner.make_val(5, 'int')).to eq(5)
+    end
+
+    it "should handle datetime values" do
+      expect(@dbcleaner.make_val('2014-12-25 11:11:11 -0500', 'datetime')).to eq("'2014-12-25 11:11:11'")
+    end
+  end
+
   context "specifying a table" do
 
     it "should return a list of columns with types" do
@@ -23,7 +49,7 @@ describe DBCleaner do
 
     it "should return all columns if no columns specified" do
       columns = @dbcleaner.table_columns(table_no_columns)
-      expect(columns).to eq({ 'id' => 'int', 'last_name' => 'varchar', 'first_name' => 'varchar' })
+      expect(columns).to eq({ 'id' => 'int', 'last_name' => 'varchar', 'first_name' => 'varchar', "created_at"=>"datetime", "active"=>"tinyint", "comments"=>"text" })
     end
 
     it "should return a list of desired ids" do
@@ -40,7 +66,7 @@ describe DBCleaner do
       it "should make a good query with no ids or columns specified" do
         expect(@dbcleaner.table_query(table_no_ids_or_columns,
             @dbcleaner.table_columns(table_no_ids_or_columns),
-            @dbcleaner.table_ids(table_no_ids_or_columns))).to eq('SELECT id,first_name,last_name FROM students')
+            @dbcleaner.table_ids(table_no_ids_or_columns))).to eq('SELECT id,first_name,last_name,created_at,active,comments FROM students')
       end
 
       it "should make a good query with no ids specified" do
@@ -52,7 +78,7 @@ describe DBCleaner do
       it "should make a good query with no columns specified" do
         expect(@dbcleaner.table_query(table_no_columns,
             @dbcleaner.table_columns(table_no_columns),
-            @dbcleaner.table_ids(table_no_columns))).to eq('SELECT id,first_name,last_name FROM students WHERE id IN (1,2)')
+            @dbcleaner.table_ids(table_no_columns))).to eq('SELECT id,first_name,last_name,created_at,active,comments FROM students WHERE id IN (1,2)')
       end
 
       it "should make a good query with ids and columns specified" do
@@ -66,15 +92,17 @@ describe DBCleaner do
 
   context "extracting from a table" do
     before(:all) do
-      @student1 = create_student(@dbcleaner.db_client, { :id => 1, :first_name => 'Bob', :last_name => 'Smith' })
-      @student2 = create_student(@dbcleaner.db_client, { :id => 2, :first_name => 'John', :last_name => 'Jones' })
+      @student1 = create_student(@dbcleaner.db_client,
+          { :id => 1, :first_name => 'Bob', :last_name => 'Smith', :created_at => '2014-12-25 11:11:11' })
+      @student2 = create_student(@dbcleaner.db_client,
+          { :id => 2, :first_name => 'John', :last_name => 'Jones', :created_at => 'NULL' })
     end
     after(:all) do
       @dbcleaner.db_client.query('DELETE FROM students')
     end
 
     it "should generate create table command" do
-      create_string = "CREATE TABLE `students` (\n  `id` int(11) NOT NULL AUTO_INCREMENT,\n  `first_name` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,\n  `last_name` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci"
+      create_string = "CREATE TABLE `students` (\n  `id` int(11) NOT NULL AUTO_INCREMENT,\n  `first_name` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,\n  `last_name` varchar(255) COLLATE utf8_unicode_ci DEFAULT NULL,\n  `created_at` datetime DEFAULT NULL,\n  `active` tinyint(1) DEFAULT '0',\n  `comments` text COLLATE utf8_unicode_ci,\n  PRIMARY KEY (`id`)\n) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;"
       expect(@dbcleaner.create_table(table)).to eq(create_string)
     end
 
@@ -83,7 +111,7 @@ describe DBCleaner do
       ids = [1]
       query = @dbcleaner.table_query(table, columns, ids)
       results = @dbcleaner.db_client.query(query)
-      insert_string = "INSERT INTO students (first_name,last_name) VALUES ('Bob','Smith')\n"
+      insert_string = "INSERT INTO students (first_name,last_name) VALUES ('Bob','Smith');\n"
       expect(results.count).to eq(1)
       expect(@dbcleaner.make_insert(table, columns, results.fields, results.first)).to eq(insert_string)
     end
@@ -94,8 +122,8 @@ describe DBCleaner do
       results = @dbcleaner.db_client.query(query)
       expect(results.count).to eq(2)
       insert_string = []
-      insert_string[0] = "INSERT INTO students (first_name,last_name) VALUES ('Bob','Smith')\n"
-      insert_string[1] = "INSERT INTO students (first_name,last_name) VALUES ('John','Jones')\n"
+      insert_string[0] = "INSERT INTO students (first_name,last_name) VALUES ('Bob','Smith');\n"
+      insert_string[1] = "INSERT INTO students (first_name,last_name) VALUES ('John','Jones');\n"
       results.each_with_index do |result,i|
         expect(@dbcleaner.make_insert(table, columns, results.fields, result)).to eq(insert_string[i])
       end
@@ -107,8 +135,8 @@ describe DBCleaner do
       results = @dbcleaner.db_client.query(query)
       expect(results.count).to eq(2)
       insert_string = []
-      insert_string[0] = "INSERT INTO students (id,first_name,last_name) VALUES (1,'Bob','Smith')\n"
-      insert_string[1] = "INSERT INTO students (id,first_name,last_name) VALUES (2,'John','Jones')\n"
+      insert_string[0] = "INSERT INTO students (id,first_name,last_name,created_at,active,comments) VALUES (1,'Bob','Smith','2014-12-25 11:11:11',0,NULL);\n"
+      insert_string[1] = "INSERT INTO students (id,first_name,last_name,created_at,active,comments) VALUES (2,'John','Jones',NULL,0,NULL);\n"
       results.each_with_index do |result,i|
         expect(@dbcleaner.make_insert(table, columns, results.fields, result)).to eq(insert_string[i])
       end

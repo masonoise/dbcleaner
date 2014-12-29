@@ -4,6 +4,8 @@ require_relative 'db_cleaner_util.rb'
 class DBCleaner
   include DBCleanerUtil
 
+  COLUMN_TYPES = %w(varchar int tinyint text datetime)
+
   @db_client = nil
   def db_client
     @db_client ||= get_db_client
@@ -18,6 +20,7 @@ class DBCleaner
     dbconfig = parse_db_config
 
     extract_tables(dbconfig["tables"])
+    @outfile.close
   end
 
   def extract_tables(tables)
@@ -40,19 +43,31 @@ class DBCleaner
   end
 
   def create_table(table)
-    db_client.query("SHOW CREATE TABLE #{table['name']}").first['Create Table']
+    db_client.query("SHOW CREATE TABLE #{table['name']}").first['Create Table'] + ';'
   end
 
   def make_insert(table, columns, fields, row)
     statement = "INSERT INTO #{table['name']} (#{fields.join(',')}) VALUES ("
     values = []
     fields.each do |field|
-      val = row[field]
-      val = "'#{val}'" if columns[field] == 'varchar'
-      values << val
+      values << make_val(row[field], columns[field])
     end
-    statement << "#{values.join(',')})\n"
+    statement << "#{values.join(',')});\n"
     statement
+  end
+
+  def make_val(row_value, column_type)
+    val = row_value
+    if (row_value.nil?)
+      val = 'NULL'
+    else
+      val = "'#{row_value}'" if (column_type == 'varchar' || column_type == 'text')
+      # datetime values come back like '2014-12-25 11:11:11 -0500' and we want to remove the timezone offset
+      if (column_type == 'datetime')
+        val = "'#{/(\S* \S*) .*/.match(val.to_s)[1]}'"
+      end
+    end
+    val
   end
 
   def table_query(table, columns, ids)
@@ -75,6 +90,10 @@ class DBCleaner
         t = field['Type']
         t = 'varchar' if t.start_with?('varchar')
         t = 'int' if t.start_with?('int')
+        t = 'tinyint' if t.start_with?('tinyint')
+        if !(COLUMN_TYPES.include?(t))
+          raise "Unknown column type #{t}, exiting."
+        end
         columns[field['Field']] = t
       end
     end
