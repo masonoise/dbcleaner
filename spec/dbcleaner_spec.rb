@@ -81,17 +81,37 @@ describe DBCleaner do
     it "should generate insert statement given columns and ids" do
       columns = @dbcleaner.table_columns(table)
       ids = [1]
-      insert_string = "INSERT INTO students (first_name,last_name) VALUES ('Bob','Smith')\n"
       query = @dbcleaner.table_query(table, columns, ids)
       results = @dbcleaner.db_client.query(query)
+      insert_string = "INSERT INTO students (first_name,last_name) VALUES ('Bob','Smith')\n"
       expect(results.count).to eq(1)
       expect(@dbcleaner.make_insert(table, columns, results.fields, results.first)).to eq(insert_string)
     end
 
     it "should generate insert statement given columns and no ids" do
+      columns = @dbcleaner.table_columns(table)
+      query = @dbcleaner.table_query(table, columns, nil)
+      results = @dbcleaner.db_client.query(query)
+      expect(results.count).to eq(2)
+      insert_string = []
+      insert_string[0] = "INSERT INTO students (first_name,last_name) VALUES ('Bob','Smith')\n"
+      insert_string[1] = "INSERT INTO students (first_name,last_name) VALUES ('John','Jones')\n"
+      results.each_with_index do |result,i|
+        expect(@dbcleaner.make_insert(table, columns, results.fields, result)).to eq(insert_string[i])
+      end
     end
 
     it "should generate insert statement given no columns or ids" do
+      columns = @dbcleaner.table_columns(table_no_columns)
+      query = @dbcleaner.table_query(table, columns, nil)
+      results = @dbcleaner.db_client.query(query)
+      expect(results.count).to eq(2)
+      insert_string = []
+      insert_string[0] = "INSERT INTO students (id,first_name,last_name) VALUES (1,'Bob','Smith')\n"
+      insert_string[1] = "INSERT INTO students (id,first_name,last_name) VALUES (2,'John','Jones')\n"
+      results.each_with_index do |result,i|
+        expect(@dbcleaner.make_insert(table, columns, results.fields, result)).to eq(insert_string[i])
+      end
     end
 
   end # context extracting from a table
