@@ -10,6 +10,8 @@ CREATE TABLE students (
   created_at datetime DEFAULT NULL,
   active tinyint(1) DEFAULT 0,
   comments text DEFAULT NULL,
+  tuition decimal DEFAULT NULL,
+  stuff BLOB DEFAULT NULL,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 

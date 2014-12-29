@@ -1,8 +1,9 @@
 {
   "__comment": "Each entry has the table name as the key, the ids to extract, and a list of columns. If no column list, then all columns will be extracted.",
   "tables": [
-    { "name": "partners",
-      "ids": [ 1 ]
+    { "name": "partners" },
+    { "name": "merchant_locations",
+      "ids": [ 274768 ]
     }
   ]
 }

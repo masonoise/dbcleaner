@@ -4,8 +4,8 @@ module DBCleanerUtil
   require_relative 'configurator.rb'
   include Configurator
 
-  def parse_db_config
-    JSON.parse(File.read('db_config.json'))
+  def parse_db_config(config_path)
+    JSON.parse(File.read(config_path))
   end
 
   def get_db_client
