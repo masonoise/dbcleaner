@@ -25,6 +25,10 @@ describe DBCleaner do
       expect(@dbcleaner.make_val('Foobar', 'text')).to eq("'Foobar'")
     end
 
+    it "should escape single quotes in text values" do
+      expect(@dbcleaner.make_val("Foo's bar", 'text')).to eq("'Foo\\'s bar'")
+    end
+
     it "should replace empty values with NULL" do
       expect(@dbcleaner.make_val(nil, 'varchar')).to eq("NULL")
       expect(@dbcleaner.make_val(nil, 'int')).to eq("NULL")

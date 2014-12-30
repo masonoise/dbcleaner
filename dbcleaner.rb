@@ -86,9 +86,10 @@ class DBCleaner
     if (row_value.nil?)
       val = 'NULL'
     else
-      val = "'#{row_value}'" if (column_type == 'varchar' || column_type == 'text' || column_type == 'blob')
+      if (column_type == 'varchar' || column_type == 'text' || column_type == 'blob')
+        val = "'#{ Mysql2::Client.escape(row_value) }'"
+      elsif (column_type == 'datetime')
       # datetime values come back like '2014-12-25 11:11:11 -0500' and we want to remove the timezone offset
-      if (column_type == 'datetime')
         val = "'#{/(\S* \S*) .*/.match(val.to_s)[1]}'"
       end
     end

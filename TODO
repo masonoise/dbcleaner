@@ -1,0 +1,5 @@
+TODO
+
+- Start handling associations
+- Track which tables and ids have already been extracted
+- Skip entries that have been extracted
