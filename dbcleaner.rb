@@ -47,6 +47,8 @@ class DBCleaner
   #
   def extract_table(table)
     puts "Extracting from #{table['name']}\n"
+    puts ">>> assoc: #{table['associations']}"
+    extract_associations(table['associations']) if table['associations']
     @outfile.puts create_table(table)
     columns = table_columns(table)
     ids = table_ids(table)
@@ -54,6 +56,17 @@ class DBCleaner
     results = db_client.query(query)
     results.each do |row|
       @outfile.puts make_insert(table, columns, results.fields, row)
+    end
+  end
+
+  #
+  # If there are any associations listed, extract them first (so we don't have problems
+  # with foreign key constraints).
+  #
+  def extract_associations(associations)
+    puts ">>>> Called with #{associations}"
+    associations.each do |association|
+      extract_table(association)
     end
   end
 

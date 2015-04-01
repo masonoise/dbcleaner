@@ -7,6 +7,7 @@ describe DBCleaner do
   let (:table_no_columns) { { 'name' => "students", 'ids' => [1,2] } }
   let (:table_no_ids) { { 'name' => "students", 'columns' => ["first_name", "last_name"] } }
   let (:table_no_ids_or_columns) { { 'name' => "students" } }
+  let (:table_with_association) { { 'name' => "students", 'associations' => [ { :name => 'courses' } ]  } }
   @dbcleaner = nil
 
   before :all do
@@ -15,6 +16,7 @@ describe DBCleaner do
     @dbcleaner.set_config_path('./test_db_config.json')
   end
 
+  #---------------------------------------------------------
   context "handling column values" do
 
     it "should put varchar values in quotes" do
@@ -53,6 +55,7 @@ describe DBCleaner do
     end
   end
 
+  #---------------------------------------------------------
   context "specifying a table" do
 
     it "should return a list of columns with types" do
@@ -105,6 +108,7 @@ describe DBCleaner do
 
   end # context specifying a table
 
+  #---------------------------------------------------------
   context "extracting from a table" do
     before(:all) do
       @student1 = create_student(@dbcleaner.db_client,
@@ -158,5 +162,16 @@ describe DBCleaner do
     end
 
   end # context extracting from a table
+
+  #---------------------------------------------------------
+  context "when a table has associations" do
+
+    it "should call extract_associations with the array of associations for the table" do
+      dbcleaner = DBCleaner.new
+      dbc = spy(dbcleaner)
+      expect(dbc).to have_received(:extract_associations).with([{ :name => 'courses' }])
+      dbc.extract_table(table_with_association)
+    end
+  end
 
 end

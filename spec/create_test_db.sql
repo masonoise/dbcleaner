@@ -15,3 +15,10 @@ CREATE TABLE students (
   PRIMARY KEY (id)
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;
 
+DROP TABLE IF EXISTS courses;
+CREATE TABLE courses (
+  id int(11) NOT NULL AUTO_INCREMENT,
+  title varchar(255) DEFAULT NULL,
+  student_id int(11),
+  PRIMARY KEY (id)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;

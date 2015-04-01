@@ -3,7 +3,10 @@
   "tables": [
     { "name": "partners" },
     { "name": "merchant_locations",
-      "ids": [ 274768 ]
+      "ids": [ 274768 ],
+      "associations": [ {
+        "name": "merchants"
+      } ]
     }
   ]
 }

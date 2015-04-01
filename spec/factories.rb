@@ -31,4 +31,17 @@ SQL
     student
   end
 
+  def create_course(db_client, opts = {})
+    course = OpenStruct.new
+    course.id = opts[:id] || 1
+    course.title = opts[:title] || "New Course"
+    course.student_id = opts[:student_id] || 1
+      query = <<SQL
+INSERT INTO courses (id,title,student_id) VALUES \
+(#{course.id},'#{course.title}','#{course.student_id}')
+SQL
+    db_client.query(query)
+    course
+  end
+
 end
