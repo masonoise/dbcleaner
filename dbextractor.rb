@@ -1,8 +1,8 @@
 require 'pry'
-require_relative 'db_cleaner_util.rb'
+require_relative 'db_extractor_util.rb'
 
-class DBCleaner
-  include DBCleanerUtil
+class DBExtractor
+  include DBExtractorUtil
 
   # These are the column types that we know how to handle, normalized (for example,
   # varchar(255) becomes simply varchar, and so on).
@@ -19,9 +19,9 @@ class DBCleaner
   end
 
   #
-  # Main method, call this to execute the DBCleaner extraction based on the db_config.json file.
+  # Main method, call this to execute the DBExtractor extraction based on the db_config.json file.
   #
-  def extract(outfile_path = 'dbcleaner_output.sql')
+  def extract(outfile_path = 'dbextractor_output.sql')
     @outfile = open(outfile_path, 'w')
     puts "Loading config...\n"
     dbconfig = parse_db_config(@config_path)
@@ -147,4 +147,4 @@ class DBCleaner
   end
 end
 
-# DBCleaner.new.extract
+# DBExtractor.new.extract

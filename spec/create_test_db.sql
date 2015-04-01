@@ -1,6 +1,6 @@
 --
 -- Run this to create the test database.
--- Example: mysql -h localhost -u root -D test_dbcleaner < spec/create_test_db.sql
+-- Example: mysql -h localhost -u root -D test_dbextractor < spec/create_test_db.sql
 --
 DROP TABLE IF EXISTS students;
 CREATE TABLE students (

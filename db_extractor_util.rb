@@ -1,4 +1,4 @@
-module DBCleanerUtil
+module DBExtractorUtil
   require 'mysql2'
   require 'json'
   require_relative 'configurator.rb'
